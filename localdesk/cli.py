@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
+from rich.console import Console
 
 from . import __version__
 from .agent import Agent
@@ -23,14 +25,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--yes", action="store_true", help="Skip approval; the plan still passes validation")
     parser.add_argument("--dry-run", action="store_true", help="Show the plan without sending input")
     parser.add_argument("--show-config", action="store_true", help="Show the effective configuration summary")
+    parser.add_argument("--profile", choices=["balanced", "fast", "quality"])
+    parser.add_argument("--capture-backend", choices=["auto", "mss", "dxcam", "pyautogui"])
     return parser
 
 
 def main() -> int:
     configure_console()
+    if len(sys.argv) > 1 and sys.argv[1] in {"doctor", "benchmark"}:
+        from .commands import app
+        app()
+        return 0
     args = build_parser().parse_args()
+    agent = None
     try:
         settings = Settings.from_env()
+        from .performance import PROFILES
+        if args.profile:
+            width, quality, tokens = PROFILES[args.profile]
+            settings = replace(settings, profile=args.profile, screenshot_width=width, screenshot_jpeg_quality=quality, max_tokens=tokens)
+        if args.capture_backend:
+            settings = replace(settings, capture_backend=args.capture_backend)
+        settings.validated()
         if args.show_config:
             print(f"API: {settings.base_url}\nModel: {settings.model}\nStep limit: {settings.max_steps}")
             return 0
@@ -64,6 +80,9 @@ def main() -> int:
     except LocalDeskError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
+    finally:
+        if agent is not None:
+            agent.close()
 
 
 def _run_goal(goal: str, agent: Agent, args) -> None:
@@ -76,6 +95,7 @@ def _run_goal(goal: str, agent: Agent, args) -> None:
         print("Dry run: no input was sent.")
     else:
         agent.run(goal, lambda: True if args.yes else _confirm())
+        Console().print({k: round(v * 1000, 2) for k, v in agent.timings.report().items()})
 
 
 def _confirm() -> bool:

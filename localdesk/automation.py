@@ -38,6 +38,9 @@ class Desktop:
                 raise AutomationError(
                     f"Execution reached the {max_seconds:.0f}-second limit; remaining actions were stopped."
                 )
+            expected = action.args.get("seconds", 0) if action.kind == "wait" else action.args.get("timeout", 2) if action.kind == "wait_change" else action.args.get("duration", 0.12) if action.kind == "move" else 0
+            if expected > deadline - time.monotonic():
+                raise AutomationError("Action exceeds the remaining execution time limit.")
             self.announce(f"[{index}/{len(plan.steps)}] {describe_action(action)}")
             self._execute_one(action)
 
@@ -55,6 +58,10 @@ class Desktop:
                 self._type_text(a["text"])
             elif action.kind == "hotkey":
                 self.pg.hotkey(*[_pyautogui_key(k) for k in a["keys"]])
+            elif action.kind == "wait_change":
+                observer = getattr(self, "wait_for_change", None)
+                if observer is None or not observer(timeout=a.get("timeout", 2)):
+                    raise AutomationError("Timed out waiting for a screen change.")
             elif action.kind == "wait":
                 time.sleep(a["seconds"])
             else:
@@ -111,4 +118,6 @@ def describe_action(action: Action) -> str:
         return f"type: {a['text']!r}"
     if action.kind == "hotkey":
         return "hotkey: " + "+".join(a["keys"])
+    if action.kind == "wait_change":
+        return f"wait for screen change (timeout {a.get('timeout', 2)} s)"
     return f"wait {a.get('seconds')} s"

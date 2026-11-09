@@ -47,7 +47,9 @@ def validate_plan(plan: Plan, bounds: ScreenBounds, settings: Settings) -> Plan:
     estimated_seconds = 0.0
     for i, step in enumerate(plan.steps, 1):
         _validate_action(step, bounds, settings, i)
-        if step.kind == "wait":
+        if step.kind == "wait_change":
+            estimated_seconds += float(step.args.get("timeout", 2))
+        elif step.kind == "wait":
             estimated_seconds += float(step.args["seconds"])
         elif step.kind == "move":
             estimated_seconds += float(step.args.get("duration", 0.12))
@@ -108,6 +110,10 @@ def _validate_action(action: Action, bounds: ScreenBounds, settings: Settings, i
             raise SafetyError(f"{label}: system-level hotkeys are blocked.")
         if len(set(normalized)) != len(normalized):
             raise SafetyError(f"{label}: duplicate keys are not allowed in a hotkey.")
+    elif action.kind == "wait_change":
+        timeout = _number(a.get("timeout", 2), f"{label}: timeout")
+        if not 0 < timeout <= 10:
+            raise SafetyError(f"{label}: timeout must be greater than 0 and at most 10 seconds.")
     elif action.kind == "wait":
         seconds = _number(a.get("seconds"), f"{label}: seconds")
         if not 0 <= seconds <= 10:

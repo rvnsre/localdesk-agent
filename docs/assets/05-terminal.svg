@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620">
+<rect width="1400" height="620" fill="#0b1020"/>
+<rect x="20" y="20" width="1360" height="580" rx="18" fill="#0b1020" stroke="#253858" stroke-width="2"/>
+<text x="60" y="67" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="19" fill="#78e0b5">04 / TERMINAL EXPERIENCE</text>
+<text x="60" y="136" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="46" fill="#edf4ff">Readable plans. Explicit approval.</text>
+<text x="60" y="178" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23" fill="#9eafca">Illustrative demo — this panel is a product mockup, not a captured benchmark.</text>
+<rect x="60" y="230" width="1280" height="320" rx="18" fill="#080e19" stroke="#253858" stroke-width="2"/>
+<text x="88" y="272" font-family="Consolas,monospace" font-size="22" fill="#68b9ff">$ localdesk --profile balanced &quot;Find the search field&quot;</text>
+<text x="88" y="311" font-family="Consolas,monospace" font-size="22" fill="#edf4ff">Plan: Focus the visible search field.</text>
+<text x="88" y="350" font-family="Consolas,monospace" font-size="22" fill="#9eafca">  1. click left (640, 310)</text>
+<text x="88" y="389" font-family="Consolas,monospace" font-size="22" fill="#78e0b5">Execute this plan? [y/N] y</text>
+<text x="88" y="428" font-family="Consolas,monospace" font-size="22" fill="#9eafca">Freshness check passed. Executing 1 validated action.</text>
+<text x="88" y="467" font-family="Consolas,monospace" font-size="22" fill="#68b9ff">$ localdesk doctor --json</text>
+<text x="88" y="506" font-family="Consolas,monospace" font-size="22" fill="#68b9ff">$ localdesk benchmark --mode capture --output capture.json</text>
+</svg>

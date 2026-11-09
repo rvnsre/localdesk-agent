@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import orjson
-import requests
+import httpx
 
 from localdesk.automation import Desktop
 from localdesk.config import Settings
@@ -20,7 +20,9 @@ from localdesk.schema import Action, Plan
 class ModelTests(unittest.TestCase):
     def setUp(self):
         self.model = LocalModel(Settings().validated())
+        self.model.session.close()
         self.model.session = Mock()
+        self.addCleanup(self.model.close)
 
     def test_sends_optimized_payload_and_reads_plan(self):
         raw = '{"summary":"x","steps":[]}'
@@ -30,19 +32,19 @@ class ModelTests(unittest.TestCase):
         self.model.session.post.return_value = response
         self.assertEqual(self.model.plan("goal", "data:image/jpeg;base64,AA==", 10, 10), raw)
         kwargs = self.model.session.post.call_args.kwargs
-        self.assertIsInstance(kwargs["data"], bytes)
-        self.assertEqual(orjson.loads(kwargs["data"])["model"], "local-model")
-        self.assertEqual(kwargs["timeout"], (5.0, 90.0))
+        self.assertIsInstance(kwargs["content"], bytes)
+        self.assertEqual(orjson.loads(kwargs["content"])["model"], "local-model")
+        self.assertNotIn("verify", kwargs)
 
     def test_maps_timeout_http_and_malformed_response_errors(self):
-        self.model.session.post.side_effect = requests.Timeout()
+        self.model.session.post.side_effect = httpx.ReadTimeout("timeout")
         with self.assertRaisesRegex(ModelError, "timeout"):
             self.model.plan("x", "data:", 1, 1)
-        self.model.session.post.side_effect = requests.ConnectionError()
+        self.model.session.post.side_effect = httpx.ConnectError("connection")
         with self.assertRaisesRegex(ModelError, "server is running"):
             self.model.plan("x", "data:", 1, 1)
         response = Mock(status_code=400)
-        response.raise_for_status.side_effect = requests.HTTPError(response=response)
+        response.raise_for_status.side_effect = httpx.HTTPStatusError("bad", request=httpx.Request("POST", "http://localhost"), response=response)
         self.model.session.post.side_effect = None
         self.model.session.post.return_value = response
         with self.assertRaisesRegex(ModelError, "HTTP 400"):
@@ -77,6 +79,8 @@ class ModelTests(unittest.TestCase):
             model = LocalModel(Settings(base_url=url).validated())
             answer = model.plan("tap", "data:image/jpeg;base64,AA==", 320, 200)
         finally:
+            if "model" in locals():
+                model.close()
             server.shutdown()
             thread.join(timeout=2)
             server.server_close()
@@ -140,7 +144,7 @@ class AutomationTests(unittest.TestCase):
         desktop.pg = pg
         desktop.announce = Mock()
         plan = Plan("x", (Action("wait", {"seconds": 0}), Action("wait", {"seconds": 0})))
-        with patch("localdesk.automation.time.monotonic", side_effect=[0.0, 0.0, 2.0]), patch("localdesk.automation.time.sleep") as sleep:
+        with patch("localdesk.automation.time.monotonic", side_effect=[0.0, 0.0, 0.0, 2.0]), patch("localdesk.automation.time.sleep") as sleep:
             with self.assertRaisesRegex(AutomationError, "limit"):
                 desktop.execute(plan, max_seconds=1)
         self.assertEqual(sleep.call_count, 1)

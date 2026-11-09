@@ -1,0 +1,17 @@
+{
+  "cpu_count": 12,
+  "memory_bytes": 16390692864,
+  "kind": "tasks",
+  "model": "local-model",
+  "base_url": "http://127.0.0.1:1234/v1",
+  "profile": "balanced",
+  "platform": "Windows-10-10.0.26100-SP0",
+  "fixture_version": 1,
+  "iterations": 20,
+  "warmups": 3,
+  "engine": "optimized",
+  "tasks": {},
+  "status": "unavailable",
+  "end_to_end_speedup": null,
+  "reason": "Model API unavailable: ConnectError"
+}
