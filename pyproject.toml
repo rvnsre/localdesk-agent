@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localdesk-agent"
+version = "0.1.0"
+description = "Approval-based desktop automation powered by a local AI model"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+    "PyAutoGUI>=0.9.54",
+    "Pillow>=10.0",
+    "pyperclip>=1.9",
+    "mss>=10.2",
+    "orjson>=3.10",
+    "dxcam>=0.3.0; platform_system == 'Windows'",
+]
+
+[project.scripts]
+localdesk = "localdesk.cli:main"
+localdesk-benchmark-screenshot = "localdesk.benchmark:main"
+
+[tool.setuptools.packages.find]
+include = ["localdesk*"]

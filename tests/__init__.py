@@ -1,0 +1,1 @@
+"""LocalDesk automated tests."""
