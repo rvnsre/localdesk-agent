@@ -136,6 +136,7 @@ def run(iterations, profile, backend, engine="optimized"):
                             plan = agent.propose(goals[name])
                             if not agent.capture.unchanged():
                                 raise RuntimeError("Fixture screen changed during planning.")
+                        ensure_active(stopped)
                         x, y, width, height = bounds
                         if not plan.steps:
                             raise RuntimeError("Model returned an empty plan.")
@@ -147,7 +148,7 @@ def run(iterations, profile, backend, engine="optimized"):
                             if action.kind == "type" and action.args["text"] != "LocalDesk":
                                 raise RuntimeError("Unexpected fixture input.")
                         execute_start = time.perf_counter()
-                        desktop.execute(plan, settings.max_plan_seconds)
+                        desktop.execute(plan, settings.max_plan_seconds, cancelled=stopped.is_set)
                         elapsed = time.perf_counter() - started
                         execution = time.perf_counter() - execute_start
                         def verify():
@@ -184,3 +185,9 @@ def run(iterations, profile, backend, engine="optimized"):
     thread.join(5)
     root.destroy()
     return report
+
+
+def ensure_active(stopped):
+    """Do not send input after the fixture closes while a model request is pending."""
+    if stopped.is_set():
+        raise RuntimeError("Benchmark cancelled by user.")

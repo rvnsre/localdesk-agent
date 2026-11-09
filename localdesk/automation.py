@@ -29,11 +29,13 @@ class Desktop:
         size = self.pg.size()
         return int(size.width), int(size.height)
 
-    def execute(self, plan: Plan, max_seconds: float = 120.0) -> None:
+    def execute(self, plan: Plan, max_seconds: float = 120.0, *, cancelled: Callable[[], bool] | None = None) -> None:
         if not isinstance(max_seconds, (int, float)) or isinstance(max_seconds, bool) or not math.isfinite(max_seconds) or max_seconds <= 0:
             raise AutomationError("Execution time limit must be a positive finite number.")
         deadline = time.monotonic() + max_seconds
         for index, action in enumerate(plan.steps, 1):
+            if cancelled is not None and cancelled():
+                raise AutomationError("Execution cancelled; remaining actions were stopped.")
             if time.monotonic() >= deadline:
                 raise AutomationError(
                     f"Execution reached the {max_seconds:.0f}-second limit; remaining actions were stopped."

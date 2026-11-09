@@ -9,7 +9,7 @@ from rich.console import Console
 
 from .performance import doctor as diagnostics, summarize, PROFILES
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 console = Console()
 
 
