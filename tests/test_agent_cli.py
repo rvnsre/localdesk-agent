@@ -32,7 +32,11 @@ class AgentTests(unittest.TestCase):
         self.addCleanup(self.agent_patcher.stop)
         self.model = self.model_cls.return_value
         self.model.plan.return_value = '{"summary":"ok","steps":[{"action":"click","x":50,"y":30}]}'
-        self.frame_patcher = patch("localdesk.agent.capture_screen", return_value=ScreenFrame("data:", 100, 60, 1000, 600))
+        self.capture_patcher = patch("localdesk.agent.CaptureSession")
+        self.capture_cls = self.capture_patcher.start()
+        self.addCleanup(self.capture_patcher.stop)
+        self.capture_cls.return_value.unchanged.return_value = True
+        self.frame_patcher = patch.object(self.capture_cls.return_value, "capture", return_value=ScreenFrame("data:", 100, 60, 1000, 600))
         self.frame_patcher.start()
         self.addCleanup(self.frame_patcher.stop)
         self.agent = Agent(self.settings, self.desktop)

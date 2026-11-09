@@ -4,6 +4,14 @@ LocalDesk Agent is a terminal-based desktop automation tool. A local multimodal 
 
 Python 3.10 or newer is required. Windows, macOS, and Linux are supported. Linux works best with X11; Wayland compositors may restrict screen capture and input control.
 
+## See LocalDesk
+
+![LocalDesk Agent: local vision, deliberate action](docs/assets/01-hero.png)
+![Execution workflow: capture, model, validate, approve, execute](docs/assets/02-workflow.png)
+![Windows, macOS and Linux capture architecture](docs/assets/03-platforms.png)
+![Measured capture timings and unverified end-to-end target](docs/assets/04-performance.png)
+![Illustrative terminal demo, not a real benchmark capture](docs/assets/05-terminal.png)
+
 ## Safety
 
 - The default API address is loopback (`127.0.0.1`). Remote API hosts require explicit opt-in.
@@ -26,7 +34,9 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-The project uses DXcam with the Windows Desktop Duplication API when available. It falls back to PyAutoGUI/ImageGrab and then MSS. macOS and Linux use MSS first and PyAutoGUI as a fallback. `orjson` handles model and plan JSON. DXcam is a Windows-only dependency; its API and supported capture backends are documented in the [DXcam project](https://github.com/ra1nty/DXcam). MSS primary-display selection is documented in the [MSS usage guide](https://python-mss.readthedocs.io/latest/usage.html).
+The runtime calibrates available DXcam (Windows), MSS and ImageGrab capture paths on this device, and caches only the selected backend name for one day. Capture sessions reuse native resources. NumPy/OpenCV resize and encode the image; Pillow remains the encoding fallback. `pybase64` and `orjson` handle transport encoding. Calibration includes JPEG encoding, not capture alone.
+
+The runtime has 22 direct dependencies on Windows and 21 on macOS/Linux. Each has a concrete role; see [the dependency map](docs/DEPENDENCIES.md). Library count is not a performance guarantee.
 
 ## Configure a local model
 
@@ -102,3 +112,28 @@ The test suite covers configuration, plan parsing, safety checks, coordinate map
 ## Limitations
 
 The model can misread interface elements. Inspect the plan, especially before actions that submit, delete, share, purchase, or change account settings. The application stops if the screenshot and input coordinate aspect ratios do not match. For multi-monitor setups, the primary monitor is used.
+
+## Performance profiles and diagnostics
+
+```bash
+localdesk --profile fast --capture-backend auto "Find the search field"
+localdesk --profile quality --dry-run "Read the small toolbar labels"
+localdesk doctor --json
+localdesk benchmark --mode capture --iterations 20 --output capture.json
+python -m pip install ".[benchmark]"
+localdesk benchmark --mode transport --output transport.json
+```
+
+| Profile | Maximum image width | JPEG quality | Response token limit |
+| --- | ---: | ---: | ---: |
+| balanced | 1280 | 65 | 900 |
+| fast | 960 | 60 | 600 |
+| quality | 1920 | 85 | 1200 |
+
+`LOCALDESK_PROFILE`, `LOCALDESK_CAPTURE_BACKEND`, and `LOCALDESK_MAX_TOKENS` set defaults. Existing screenshot width and quality environment variables override profile values. An explicit CLI profile selects all three profile values. The fast profile retries an **empty** plan once with a quality image; it cannot detect every model misreading and does not promise accuracy equivalence.
+
+Plans are rejected if **any pixel changes** between capture and execution. This conservative guard can reject animated pages, clocks, blinking cursors, or a terminal that prints the plan on the captured display. Keep the CLI on another display or use dry-run review while preparing a stable target. A new plan and approval are required after rejection. Pixel equality is a freshness guard, not proof that a model plan is correct.
+
+The optional `wait_change(timeout)` plan action waits for a screen change with a bounded deadline. Explicit `wait(seconds)` delays are preserved. Input remains sequential. A cancelled asynchronous model request discards its result immediately; its worker network request can continue until the HTTP timeout and never executes input. Read timeouts and desktop actions are never automatically retried.
+
+See [benchmark methodology and limitations](docs/benchmarks/README.md), [raw capture measurements](docs/benchmarks/capture-windows.json), and [transport comparison](docs/benchmarks/transport-windows.json). The 2x end-to-end target has **not been verified** because the local vision API was unavailable on the validation host.

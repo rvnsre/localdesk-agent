@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from typing import Any
 
 import orjson
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+class PlanEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    summary: str
+    steps: list[dict[str, Any]]
+
 
 from .errors import PlanError
 
@@ -17,6 +24,7 @@ ACTION_FIELDS = {
     "type": {"text"},
     "hotkey": {"keys"},
     "wait": {"seconds"},
+    "wait_change": {"timeout"},
 }
 
 JSON_SCHEMA: dict[str, Any] = {
@@ -39,6 +47,7 @@ JSON_SCHEMA: dict[str, Any] = {
                     "text": {"type": "string"},
                     "keys": {"type": "array", "items": {"type": "string"}},
                     "seconds": {"type": "number"},
+                    "timeout": {"type": "number"},
                 },
                 "required": ["action"],
                 "additionalProperties": False,
@@ -71,6 +80,10 @@ def parse_plan(raw: str) -> Plan:
         raise PlanError("The response must contain only 'summary' and 'steps'.")
     if not isinstance(obj["summary"], str) or not isinstance(obj["steps"], list):
         raise PlanError("summary must be a string and steps must be a list.")
+    try:
+        PlanEnvelope.model_validate(obj)
+    except ValidationError as exc:
+        raise PlanError("Invalid plan structure.") from exc
     bidi_controls = {"\u061c", "\u200e", "\u200f", *map(chr, range(0x202A, 0x202F)), *map(chr, range(0x2066, 0x206A))}
     if any(unicodedata.category(ch) == "Cc" or ch in bidi_controls for ch in obj["summary"]):
         raise PlanError("summary cannot contain terminal control characters.")

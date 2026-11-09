@@ -28,11 +28,23 @@ class Settings:
     verify_tls: bool = True
     allow_remote_api: bool = False
     allow_shell_text: bool = False
+    profile: str = "balanced"
+    capture_backend: str = "auto"
+    max_tokens: int = 900
 
     @classmethod
     def from_env(cls) -> "Settings":
         """Load settings from LOCALDESK_* environment variables."""
+        from .performance import RuntimeOptions, PROFILES
+        from pydantic import ValidationError
+        try:
+            runtime = RuntimeOptions().checked()
+        except (ValueError, ValidationError) as exc:
+            raise ConfigurationError(str(exc)) from exc
+        width, quality, tokens = PROFILES[runtime.profile]
         return cls(
+            profile=runtime.profile, capture_backend=runtime.capture_backend,
+            max_tokens=_int_env("LOCALDESK_MAX_TOKENS", tokens),
             base_url=os.getenv("LOCALDESK_BASE_URL", cls.base_url),
             model=os.getenv("LOCALDESK_MODEL", cls.model),
             api_key=os.getenv("LOCALDESK_API_KEY", cls.api_key),
@@ -41,8 +53,8 @@ class Settings:
             max_text_chars=_int_env("LOCALDESK_MAX_TEXT_CHARS", cls.max_text_chars),
             max_goal_chars=_int_env("LOCALDESK_MAX_GOAL_CHARS", cls.max_goal_chars),
             max_plan_seconds=_float_env("LOCALDESK_MAX_SECONDS", cls.max_plan_seconds),
-            screenshot_width=_int_env("LOCALDESK_SCREENSHOT_WIDTH", cls.screenshot_width),
-            screenshot_jpeg_quality=_int_env("LOCALDESK_JPEG_QUALITY", cls.screenshot_jpeg_quality),
+            screenshot_width=_int_env("LOCALDESK_SCREENSHOT_WIDTH", width),
+            screenshot_jpeg_quality=_int_env("LOCALDESK_JPEG_QUALITY", quality),
             temperature=_float_env("LOCALDESK_TEMPERATURE", cls.temperature),
             verify_tls=os.getenv("LOCALDESK_VERIFY_TLS", "true").lower() not in {"0", "false", "no"},
             allow_remote_api=os.getenv("LOCALDESK_ALLOW_REMOTE_API", "false").lower() in {"1", "true", "yes"},
@@ -50,6 +62,10 @@ class Settings:
         ).validated()
 
     def validated(self) -> "Settings":
+        if self.profile not in {"balanced", "fast", "quality"} or self.capture_backend not in {"auto", "mss", "dxcam", "pyautogui"}:
+            raise ConfigurationError("Unknown profile or capture backend.")
+        if not 128 <= self.max_tokens <= 4096:
+            raise ConfigurationError("max_tokens must be between 128 and 4096.")
         if not self.base_url.strip() or any(ord(ch) < 33 or ord(ch) == 127 for ch in self.base_url):
             raise ConfigurationError("LOCALDESK_BASE_URL cannot be empty.")
         parsed = urlparse(self.base_url)

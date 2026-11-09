@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="500" viewBox="0 0 1400 500">
+<rect width="1400" height="500" fill="#0b1020"/>
+<rect x="20" y="20" width="1360" height="460" rx="18" fill="#0b1020" stroke="#253858" stroke-width="2"/>
+<text x="60" y="67" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="19" fill="#78e0b5">01 / THE EXECUTION LOOP</text>
+<text x="60" y="136" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="46" fill="#edf4ff">See. Plan. Validate. Act.</text>
+<text x="60" y="178" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23" fill="#9eafca">Every desktop action passes through explicit boundaries.</text>
+<rect x="60" y="245" width="240" height="125" rx="18" fill="#131d32" stroke="#253858" stroke-width="2"/>
+<text x="80" y="280" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="20" fill="#78e0b5">01</text>
+<text x="80" y="319" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="28" fill="#edf4ff">Capture</text>
+<text x="80" y="352" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="17" fill="#9eafca">Fresh screenshot</text>
+<rect x="320" y="245" width="240" height="125" rx="18" fill="#131d32" stroke="#253858" stroke-width="2"/>
+<text x="340" y="280" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="20" fill="#78e0b5">02</text>
+<text x="340" y="319" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="28" fill="#edf4ff">Model</text>
+<text x="340" y="352" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="17" fill="#9eafca">Local vision API</text>
+<rect x="580" y="245" width="240" height="125" rx="18" fill="#131d32" stroke="#253858" stroke-width="2"/>
+<text x="600" y="280" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="20" fill="#78e0b5">03</text>
+<text x="600" y="319" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="28" fill="#edf4ff">Validate</text>
+<text x="600" y="352" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="17" fill="#9eafca">Bounds and limits</text>
+<rect x="840" y="245" width="240" height="125" rx="18" fill="#131d32" stroke="#253858" stroke-width="2"/>
+<text x="860" y="280" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="20" fill="#78e0b5">04</text>
+<text x="860" y="319" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="28" fill="#edf4ff">Approve</text>
+<text x="860" y="352" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="17" fill="#9eafca">Review the plan</text>
+<rect x="1100" y="245" width="240" height="125" rx="18" fill="#131d32" stroke="#253858" stroke-width="2"/>
+<text x="1120" y="280" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="20" fill="#78e0b5">05</text>
+<text x="1120" y="319" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="28" fill="#edf4ff">Execute</text>
+<text x="1120" y="352" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="17" fill="#9eafca">Sequential input</text>
+<text x="60" y="438" font-family="Segoe UI,DejaVu Sans,sans-serif" font-size="23" fill="#68b9ff">Freshness check before execution  /  No parallel mouse or keyboard actions</text>
+</svg>
