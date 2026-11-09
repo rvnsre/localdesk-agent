@@ -106,7 +106,7 @@ def _validate_action(action: Action, bounds: ScreenBounds, settings: Settings, i
             normalized = ["ctrl" if key == "command" else key for key in normalized]
         if any(k not in VALID_KEYS for k in normalized):
             raise SafetyError(f"{label}: the hotkey contains an unsupported key.")
-        if "win" in normalized or frozenset(normalized) in BLOCKED_COMBOS:
+        if "win" in normalized or any(combo.issubset(normalized) for combo in BLOCKED_COMBOS):
             raise SafetyError(f"{label}: system-level hotkeys are blocked.")
         if len(set(normalized)) != len(normalized):
             raise SafetyError(f"{label}: duplicate keys are not allowed in a hotkey.")
@@ -135,11 +135,10 @@ def _number(value: object, label: str) -> float:
 
 
 def _looks_like_shell_command(text: str) -> bool:
-    first = text.strip().splitlines()[0].strip().lower()
     commands = (
         r"sudo|rm\s|del\s|format\s|shutdown|reboot|powershell\b|pwsh\b|"
         r"cmd(?:\.exe)?\b|bash\b|sh\b|curl\b|wget\b|python\b|pip\b|"
         r"chmod\b|diskpart\b|reg\s+delete|osascript\b|xdg-open\b|"
         r"winget\b|apt(?:-get)?\b|brew\b"
     )
-    return bool(re.match(rf"^({commands})", first))
+    return any(re.match(rf"^({commands})", line.strip().lower()) for line in text.splitlines())

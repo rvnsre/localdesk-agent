@@ -137,3 +137,9 @@ Plans are rejected if **any pixel changes** between capture and execution. This 
 The optional `wait_change(timeout)` plan action waits for a screen change with a bounded deadline. Explicit `wait(seconds)` delays are preserved. Input remains sequential. A cancelled asynchronous model request discards its result immediately; its worker network request can continue until the HTTP timeout and never executes input. Read timeouts and desktop actions are never automatically retried.
 
 See [benchmark methodology and limitations](docs/benchmarks/README.md), [raw capture measurements](docs/benchmarks/capture-windows.json), and [transport comparison](docs/benchmarks/transport-windows.json). The 2x end-to-end target has **not been verified** because the local vision API was unavailable on the validation host.
+
+## Cancellation and repeated waits
+
+Each successful `wait_change` consumes that observed change: a second wait requires a newer frame. Timeouts and poll intervals must be positive and finite. Embedded callers can pass `cancelled=callback` to `Desktop.execute`; cancellation is checked before each input action. The isolated benchmark also rejects a late model result when its window has been closed. Diagnostic tracebacks do not print local variable values.
+
+The shell-text filter checks every line of multiline input. Adding a modifier to a blocked hotkey does not bypass its restriction. These filters are heuristics; inspect the approved plan and keep the fail-safe available.
