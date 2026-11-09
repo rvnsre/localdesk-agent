@@ -141,3 +141,5 @@ See [benchmark methodology and limitations](docs/benchmarks/README.md), [raw cap
 ## Cancellation and repeated waits
 
 Each successful `wait_change` consumes that observed change: a second wait requires a newer frame. Timeouts and poll intervals must be positive and finite. Embedded callers can pass `cancelled=callback` to `Desktop.execute`; cancellation is checked before each input action. The isolated benchmark also rejects a late model result when its window has been closed. Diagnostic tracebacks do not print local variable values.
+
+The shell-text filter checks every line of multiline input. Adding a modifier to a blocked hotkey does not bypass its restriction. These filters are heuristics; inspect the approved plan and keep the fail-safe available.
