@@ -1,139 +1,120 @@
 # LocalDesk Agent
 
-LocalDesk Agent is a terminal-based desktop automation tool. A local multimodal AI model inspects a screenshot and proposes mouse and keyboard actions. The program validates the plan and shows every action before asking for approval.
+<p align="center">
+  <img src="docs/assets/readme-banner.png" alt="LocalDesk Agent: See the screen. Review the action. Conceptual workflow illustration." width="1200">
+</p>
 
-Python 3.10 or newer is required. Windows, macOS, and Linux are supported. Linux works best with X11; Wayland compositors may restrict screen capture and input control.
+**Desktop automation with a local vision model and an approval step before input.**
 
-## See LocalDesk
+Python **3.10+** · Windows / macOS / Linux · Terminal interface
 
-![LocalDesk Agent: local vision, deliberate action](docs/assets/01-hero.png)
-![Execution workflow: capture, model, validate, approve, execute](docs/assets/02-workflow.png)
-![Windows, macOS and Linux capture architecture](docs/assets/03-platforms.png)
-![Measured capture timings and unverified end-to-end target](docs/assets/04-performance.png)
-![Illustrative terminal demo, not a real benchmark capture](docs/assets/05-terminal.png)
+[![CI](https://github.com/rvnsre/localdesk-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/rvnsre/localdesk-agent/actions/workflows/ci.yml)
 
-## Safety
+[Quick start](#quick-start) · [Workflow](#how-it-works) · [Profiles](#performance-profiles) · [Documentation](#documentation)
 
-- The default API address is loopback (`127.0.0.1`). Remote API hosts require explicit opt-in.
-- Model output must be valid JSON and pass action, coordinate, duration, and text limits.
-- Plans are shown for approval before any input is sent. `--yes` bypasses the approval prompt.
-- Shell-like text and system-level hotkeys are blocked. Plans are never executed as shell commands.
-- PyAutoGUI's fail-safe is enabled. Move the pointer to the upper-left corner to stop an active sequence.
-- The default PyAutoGUI per-action pause is disabled. Only validated move and wait durations add delays.
-- Screenshots are sent to the configured model API. Use a local endpoint when screen contents must stay on the device.
-- Unicode and multiline typing temporarily use the system clipboard and restore its previous text. Rich, non-text clipboard formats may not be preserved.
+> **Project status:** Desktop/model behavior depends on your machine and permissions. Capture and transport measurements are available; the 2× end-to-end target remains unverified. [Evidence and methodology](docs/benchmarks/README.md).
 
-## Install
+## Inspect first. Approve before input.
 
-```bash
-python -m venv .venv
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-# macOS or Linux
-source .venv/bin/activate
-python -m pip install -e .
+LocalDesk captures the primary display, asks a configured vision-capable API for a structured action plan, validates it and shows the proposed actions for approval. A dry run shows the plan without sending desktop input.
+
+| Local vision | Validated actions | Explicit review |
+| --- | --- | --- |
+| Screenshots go to your configured model endpoint; loopback is the default. | JSON plans pass coordinate, text, duration and action limits. | Review the plan before input; `--dry-run` never executes it. |
+
+## How it works
+
+```text
+Capture → Vision model → Validate → Review + approve → Sequential input
+                            |
+                  Changed screen? Reject and re-plan.
 ```
 
-The runtime calibrates available DXcam (Windows), MSS and ImageGrab capture paths on this device, and caches only the selected backend name for one day. Capture sessions reuse native resources. NumPy/OpenCV resize and encode the image; Pillow remains the encoding fallback. `pybase64` and `orjson` handle transport encoding. Calibration includes JPEG encoding, not capture alone.
+**Any pixel change** between capture and execution rejects the plan. Animation, clocks, blinking cursors or output from the CLI itself can trigger this guard. Keep the terminal on another display when preparing a stable target. Pixel equality is a freshness check, not proof of model correctness.
 
-The runtime has 22 direct dependencies on Windows and 21 on macOS/Linux. Each has a concrete role; see [the dependency map](docs/DEPENDENCIES.md). Library count is not a performance guarantee.
+## Quick start
 
-## Configure a local model
+```bash
+git clone https://github.com/rvnsre/localdesk-agent.git
+cd localdesk-agent
+```
 
-Start an OpenAI-compatible API server with a vision-capable model. For example, LM Studio may expose `http://127.0.0.1:1234/v1`. The model server must accept image input and JSON mode (`response_format: {"type":"json_object"}`).
-
-PowerShell:
+<details open>
+<summary><strong>Windows / PowerShell</strong></summary>
 
 ```powershell
-$env:LOCALDESK_MODEL = "qwen2.5-vl"
+python -m venv .venv
+..venvScriptspython.exe -m pip install -e .
 $env:LOCALDESK_BASE_URL = "http://127.0.0.1:1234/v1"
+$env:LOCALDESK_MODEL = "your-installed-vision-model"
+..venvScriptslocaldesk.exe doctor --json
+..venvScriptslocaldesk.exe --dry-run "Find the search field in the current window"
 ```
 
-macOS/Linux:
+</details>
+
+<details>
+<summary><strong>Linux / macOS</strong></summary>
 
 ```bash
-export LOCALDESK_MODEL="qwen2.5-vl"
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
 export LOCALDESK_BASE_URL="http://127.0.0.1:1234/v1"
+export LOCALDESK_MODEL="your-installed-vision-model"
+.venv/bin/localdesk doctor --json
+.venv/bin/localdesk --dry-run "Find the search field in the current window"
 ```
 
-## Run
+</details>
 
-```bash
-localdesk "Open a new browser tab"
-localdesk --dry-run "Type LocalDesk into the search field"
-localdesk
-```
+Start your local model server first and replace the model placeholder with its exact model ID. It must support image input and JSON mode through an OpenAI-compatible API. Installing LocalDesk does not install or start a model server.
 
-The interactive mode accepts one task at a time; use `/quit` to exit. `--dry-run` displays the proposed plan without sending input. Review each action before approving it.
+The examples use the venv executable directly; activation is optional. After reviewing dry-run behavior, omit `--dry-run` to request a plan and approval. `localdesk` with no goal starts interactive mode; `/quit` exits.
 
-## CLI options
+## Performance profiles
 
-| Option | Description |
-| --- | --- |
-| `--dry-run` | Generate and display a plan without executing it. |
-| `--yes` | Execute the validated plan without an approval prompt. |
-| `--show-config` | Print the effective API URL, model, and step limit. |
-| `--version` | Print the installed version. |
-
-## Configuration
-
-| Environment variable | Default | Description |
-| --- | --- | --- |
-| `LOCALDESK_BASE_URL` | `http://127.0.0.1:1234/v1` | OpenAI-compatible API base URL. |
-| `LOCALDESK_MODEL` | `local-model` | Model ID exposed by the server. |
-| `LOCALDESK_API_KEY` | `local` | API key; set an empty value if the local server does not use authentication. |
-| `LOCALDESK_TIMEOUT` | `90` | API response timeout in seconds. |
-| `LOCALDESK_TEMPERATURE` | `0.1` | Generation temperature, from 0 to 2. |
-| `LOCALDESK_VERIFY_TLS` | `true` | Verify HTTPS certificates. |
-| `LOCALDESK_MAX_STEPS` | `12` | Maximum actions in one plan. |
-| `LOCALDESK_MAX_TEXT_CHARS` | `2000` | Maximum characters in one typing action. |
-| `LOCALDESK_MAX_GOAL_CHARS` | `4000` | Maximum characters in a user task. |
-| `LOCALDESK_MAX_SECONDS` | `120` | Estimated and actual action-sequence time limit. |
-| `LOCALDESK_SCREENSHOT_WIDTH` | `1280` | Maximum screenshot width sent to the model. |
-| `LOCALDESK_JPEG_QUALITY` | `65` | JPEG quality, from 20 to 95. |
-| `LOCALDESK_ALLOW_REMOTE_API` | `false` | Allow a non-loopback API host. |
-| `LOCALDESK_ALLOW_SHELL_TEXT` | `false` | Disable the shell-like text filter. |
-
-## Tests and performance
-
-```bash
-python -m unittest discover -v
-localdesk-benchmark-screenshot --iterations 15
-```
-
-The test suite covers configuration, plan parsing, safety checks, coordinate mapping, API errors, a loopback HTTP round trip, console handling, and mocked desktop actions. The screenshot benchmark reports capture-only and full JPEG/base64 timings for the current desktop. Results vary by operating system, display permissions, and hardware.
-
-## Platform notes
-
-- **Windows:** DXcam requires access to the active desktop. If DXGI is unavailable, the program switches to ImageGrab and then MSS.
-- **macOS:** Terminal or Python may need Accessibility and Screen Recording permissions.
-- **Linux:** X11/XWayland is the preferred backend. Wayland may block capture or input. Unicode clipboard typing may require `xclip`, `xsel`, or `wl-clipboard`.
-
-## Limitations
-
-The model can misread interface elements. Inspect the plan, especially before actions that submit, delete, share, purchase, or change account settings. The application stops if the screenshot and input coordinate aspect ratios do not match. For multi-monitor setups, the primary monitor is used.
-
-## Performance profiles and diagnostics
-
-```bash
-localdesk --profile fast --capture-backend auto "Find the search field"
-localdesk --profile quality --dry-run "Read the small toolbar labels"
-localdesk doctor --json
-localdesk benchmark --mode capture --iterations 20 --output capture.json
-python -m pip install ".[benchmark]"
-localdesk benchmark --mode transport --output transport.json
-```
-
-| Profile | Maximum image width | JPEG quality | Response token limit |
+| Profile | Image width | JPEG quality | Response-token ceiling |
 | --- | ---: | ---: | ---: |
-| balanced | 1280 | 65 | 900 |
-| fast | 960 | 60 | 600 |
-| quality | 1920 | 85 | 1200 |
+| `balanced` | 1,280 px | 65 | 900 |
+| `fast` | 960 px | 60 | 600 |
+| `quality` | 1,920 px | 85 | 1,200 |
 
-`LOCALDESK_PROFILE`, `LOCALDESK_CAPTURE_BACKEND`, and `LOCALDESK_MAX_TOKENS` set defaults. Existing screenshot width and quality environment variables override profile values. An explicit CLI profile selects all three profile values. The fast profile retries an **empty** plan once with a quality image; it cannot detect every model misreading and does not promise accuracy equivalence.
+`--profile quality --dry-run` favors larger screenshots for small labels. `--profile fast` uses a smaller image and retries an empty plan once with quality settings; it cannot detect every misreading or guarantee equal accuracy.
 
-Plans are rejected if **any pixel changes** between capture and execution. This conservative guard can reject animated pages, clocks, blinking cursors, or a terminal that prints the plan on the captured display. Keep the CLI on another display or use dry-run review while preparing a stable target. A new plan and approval are required after rejection. Pixel equality is a freshness guard, not proof that a model plan is correct.
+The runtime calibrates available capture backends and reuses capture resources. This improves the capture path independently of model latency. [Profiles, overrides and benchmarks →](docs/OPERATIONS.md#performance-profiles-and-diagnostics)
 
-The optional `wait_change(timeout)` plan action waits for a screen change with a bounded deadline. Explicit `wait(seconds)` delays are preserved. Input remains sequential. A cancelled asynchronous model request discards its result immediately; its worker network request can continue until the HTTP timeout and never executes input. Read timeouts and desktop actions are never automatically retried.
+## Platform setup
 
-See [benchmark methodology and limitations](docs/benchmarks/README.md), [raw capture measurements](docs/benchmarks/capture-windows.json), and [transport comparison](docs/benchmarks/transport-windows.json). The 2x end-to-end target has **not been verified** because the local vision API was unavailable on the validation host.
+| Platform | Before running |
+| --- | --- |
+| Windows | Use the active desktop; DXcam can fall back to ImageGrab/MSS when unavailable. |
+| macOS | Grant the required Accessibility and Screen Recording permissions to the launcher. |
+| Linux | Prefer X11/XWayland. Wayland may restrict capture/input; clipboard typing may need `xclip`, `xsel` or `wl-clipboard`. |
+
+Only the primary monitor is used. Screenshots are sent to the configured endpoint; a local endpoint is needed when screen contents must remain on-device. Unicode/multiline typing temporarily uses the clipboard and may not preserve rich non-text formats.
+
+## Controls to know
+
+- **Stop:** move the pointer to the upper-left corner to trigger the enabled PyAutoGUI fail-safe.
+- **Review:** approval is the default. `--yes` deliberately skips that prompt after validation.
+- **Freshness:** a changed screen requires a new plan and approval.
+- **Boundaries:** shell-like text and system-level hotkeys are blocked by default; plans are not shell commands.
+- **Limits:** model output can still be wrong. Review especially carefully before submitting, deleting, sharing or changing accounts.
+
+## Documentation
+
+| Task | Guide |
+| --- | --- |
+| Configure the model, timeouts and limits | [Environment settings](docs/OPERATIONS.md#configuration) |
+| Inspect available commands | [CLI options](docs/OPERATIONS.md#cli-options) · `localdesk --help` |
+| Tune capture, image size and tokens | [Profiles and diagnostics](docs/OPERATIONS.md#performance-profiles-and-diagnostics) |
+| Understand each runtime library | [Dependency map](docs/DEPENDENCIES.md) |
+| Reproduce measurements | [Benchmark methodology](docs/benchmarks/README.md) · [Capture data](docs/benchmarks/capture-windows.json) |
+| Review input guards and limitations | [Safety](docs/OPERATIONS.md#safety) · [Platform notes](docs/OPERATIONS.md#platform-notes) |
+| Explore the architecture | [Illustrations](docs/OPERATIONS.md#architecture-illustrations) · [Package metadata](pyproject.toml) |
+
+Run the existing test suite with `python -m unittest discover -v`. Mocked desktop actions and local transport tests do not establish real model accuracy. [Report a software issue](https://github.com/rvnsre/localdesk-agent/issues/new) with redacted diagnostics, never private screen captures or credentials.
+
+---
+
+**More from rvnsre:** [Extreme Autopilot](https://github.com/rvnsre/extreme-autopilot) · [MedResearch](https://github.com/rvnsre/medresearch-cli) · [ForgeFlow CLI](https://github.com/rvnsre/forgeflow-cli)
